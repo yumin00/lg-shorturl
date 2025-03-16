@@ -110,4 +110,33 @@ class UrlMappingRepositoryTest {
         assertThat(foundMapping).isNotNull();
         assertThat(foundMapping.getOriginalUrl()).isEqualTo("https://www.test-save.com");
     }
+
+
+    @Test
+    @DisplayName("짧은 URL로 매핑 조회 테스트")
+    void findByShortUrl() {
+        // given
+        String shortUrl = "example";
+
+        // when
+        UrlMapping foundMapping = urlMappingRepository.findByShortUrl(shortUrl);
+
+        // then
+        assertThat(foundMapping).isNotNull();
+        assertThat(foundMapping.getId()).isEqualTo(1L);
+        assertThat(foundMapping.getOriginalUrl()).isEqualTo("https://www.example.com");
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 짧은 URL 조회 시 null 반환 테스트")
+    void findByNonExistentShortUrl() {
+        // given
+        String nonExistentShortUrl = "notexist";
+
+        // when
+        UrlMapping foundMapping = urlMappingRepository.findByShortUrl(nonExistentShortUrl);
+
+        // then
+        assertThat(foundMapping).isNull();
+    }
 }
