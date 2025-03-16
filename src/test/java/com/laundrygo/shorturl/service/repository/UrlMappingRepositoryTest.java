@@ -89,4 +89,25 @@ class UrlMappingRepositoryTest {
         assertThat(foundMapping.getShortUrl()).isEqualTo("newtest1");
         assertThat(foundMapping.getCreatedAt()).isNotNull();
     }
+
+    @Test
+    @DisplayName("URL 매핑 저장 테스트")
+    void saveUrlMapping() {
+        // given
+        UrlMapping urlMapping = UrlMapping.builder()
+                .originalUrl("https://www.test-save.com")
+                .shortUrl("test123")
+                .build();
+
+        // when
+        urlMappingRepository.save(urlMapping);
+
+        // then
+        assertThat(urlMapping.getId()).isNotNull();
+
+        // 저장된 매핑 조회 확인
+        UrlMapping foundMapping = urlMappingRepository.findByShortUrl("test123");
+        assertThat(foundMapping).isNotNull();
+        assertThat(foundMapping.getOriginalUrl()).isEqualTo("https://www.test-save.com");
+    }
 }

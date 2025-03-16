@@ -1,6 +1,8 @@
 package com.laundrygo.shorturl.service.service;
 
+import com.laundrygo.shorturl.domain.UrlAccessLog;
 import com.laundrygo.shorturl.domain.UrlMapping;
+import com.laundrygo.shorturl.repository.UrlAccessLogRepository;
 import com.laundrygo.shorturl.repository.UrlMappingRepository;
 import com.laundrygo.shorturl.service.ShortUrlService;
 import org.junit.jupiter.api.DisplayName;
@@ -18,6 +20,9 @@ class ShortUrlServiceTest {
 
     @Mock
     private UrlMappingRepository urlMappingRepository;
+
+    @Mock
+    private UrlAccessLogRepository urlAccessLogRepository;
 
     @InjectMocks
     private ShortUrlService shortUrlService;
@@ -60,4 +65,40 @@ class ShortUrlServiceTest {
         assertEquals(SHORT_URL, shortUrl);
         verify(urlMappingRepository, never()).save(any());
     }
+
+    @Test
+    @DisplayName("단축 URL로 원본 URL 조회 및 접근 로그 생성 테스트")
+    void getOriginalUrlAndCreateAccessLogTest() {
+        // given
+        UrlMapping urlMapping = UrlMapping.builder()
+                .id(1L)
+                .originalUrl(ORIGINAL_URL)
+                .shortUrl(SHORT_URL)
+                .build();
+
+        when(urlMappingRepository.findByShortUrl(SHORT_URL)).thenReturn(urlMapping);
+        doNothing().when(urlAccessLogRepository).save(any(UrlAccessLog.class));
+
+        // when
+        String originalUrl = shortUrlService.getOriginalUrlAndCreateAccessLog(SHORT_URL);
+
+        // then
+        assertEquals(ORIGINAL_URL, originalUrl);
+        verify(urlAccessLogRepository, times(1)).save(any(UrlAccessLog.class));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 단축 URL 조회 테스트")
+    void getOriginalUrlNotFoundTest() {
+        // given
+        when(urlMappingRepository.findByShortUrl(anyString())).thenReturn(null);
+
+        // when
+        String originalUrl = shortUrlService.getOriginalUrlAndCreateAccessLog("notExist");
+
+        // then
+        assertNull(originalUrl);
+        verify(urlAccessLogRepository, never()).save(any());
+    }
+
 }
