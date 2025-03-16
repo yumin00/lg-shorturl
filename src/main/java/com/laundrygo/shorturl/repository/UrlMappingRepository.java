@@ -8,4 +8,5 @@ public interface UrlMappingRepository {
     UrlMapping findByOriginalUrl(String originalUrl);
     void save(UrlMapping urlMapping);
     boolean existsByShortUrl(String shortUrl);
+    UrlMapping findByShortUrl(String shortUrl);
 }

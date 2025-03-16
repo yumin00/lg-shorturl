@@ -1,16 +1,20 @@
 package com.laundrygo.shorturl.service;
 
+import com.laundrygo.shorturl.domain.UrlAccessLog;
 import com.laundrygo.shorturl.domain.UrlMapping;
+import com.laundrygo.shorturl.repository.UrlAccessLogRepository;
 import com.laundrygo.shorturl.repository.UrlMappingRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
 public class ShortUrlService {
     private final UrlMappingRepository urlMappingRepository;
+    private final UrlAccessLogRepository urlAccessLogRepository;
     private static final String CHAR_LOWER = "abcdefghijklmnopqrstuvwxyz";
     private static final String CHAR_UPPER = CHAR_LOWER.toUpperCase();
     private static final String NUMBER = "0123456789";
@@ -38,6 +42,22 @@ public class ShortUrlService {
                 .build());
 
         return shortUrl;
+    }
+
+    public String getOriginalUrlAndCreateAccessLog(String shortUrl) {
+        // 원본 URL 조회
+        UrlMapping urlMapping = urlMappingRepository.findByShortUrl(shortUrl);
+        if (urlMapping == null) {
+            return null;
+        }
+
+        // 로그 생성
+        urlAccessLogRepository.save(UrlAccessLog.builder()
+                .urlMappingId(urlMapping.getId())
+                .accessedAt(LocalDateTime.now())
+                .build());
+
+        return urlMapping.getOriginalUrl();
     }
 
     private String generateRandomString(int length) {
