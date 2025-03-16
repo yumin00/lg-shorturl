@@ -10,4 +10,9 @@ import java.util.List;
 @Mapper
 public interface UrlAccessLogRepository {
     void save(UrlAccessLog urlAccessLog);
+
+    List<UrlAccessLog> findAccessLogsByUrlMappingIdAndTimeRange(
+            @Param("urlMappingId") Long urlMappingId,
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime);
 }

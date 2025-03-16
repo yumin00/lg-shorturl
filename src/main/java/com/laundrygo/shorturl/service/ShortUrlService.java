@@ -1,7 +1,9 @@
 package com.laundrygo.shorturl.service;
 
+import com.laundrygo.shorturl.domain.HourlyAccessStats;
 import com.laundrygo.shorturl.domain.UrlAccessLog;
 import com.laundrygo.shorturl.domain.UrlMapping;
+import com.laundrygo.shorturl.domain.UrlStats;
 import com.laundrygo.shorturl.repository.UrlAccessLogRepository;
 import com.laundrygo.shorturl.repository.UrlMappingRepository;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +11,11 @@ import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -58,6 +65,49 @@ public class ShortUrlService {
                 .build());
 
         return urlMapping.getOriginalUrl();
+    }
+
+    public UrlStats getShortUrlAccessStats(String shortUrl) {
+        // 원본 URL 조회
+        UrlMapping urlMapping = urlMappingRepository.findByShortUrl(shortUrl);
+        if (urlMapping == null) {
+            return null;
+        }
+
+        // 시간 당 응답 수 조회
+        List<HourlyAccessStats> hourlyAccessStats = this.getHourlyAccessStats(urlMapping.getId());
+
+        return UrlStats.builder()
+                .originalUrl(urlMapping.getOriginalUrl())
+                .hourlyStats(hourlyAccessStats)
+                .build();
+    }
+
+    public List<HourlyAccessStats> getHourlyAccessStats(Long urlMappingId) {
+        LocalDateTime endTime = LocalDateTime.now();
+        LocalDateTime startTime = endTime.minusHours(23);
+
+        // 로그 데이터 조회
+        List<UrlAccessLog> accessLogs = urlAccessLogRepository
+                .findAccessLogsByUrlMappingIdAndTimeRange(urlMappingId, startTime, endTime);
+
+        Map<LocalDateTime, Long> hourlyCountMap = new TreeMap<>();
+
+        LocalDateTime current = startTime.truncatedTo(ChronoUnit.HOURS);
+        while (current.isBefore(endTime) || current.equals(endTime)) {
+            hourlyCountMap.put(current, 0L);
+            current = current.plusHours(1);
+        }
+
+        // 로그에서 시간별 카운트 계산
+        accessLogs.stream()
+                .map(log -> log.getAccessedAt().truncatedTo(ChronoUnit.HOURS))
+                .forEach(hourKey -> hourlyCountMap.compute(hourKey, (k, v) -> v + 1));
+
+        // 결과 리스트로 변환
+        return hourlyCountMap.entrySet().stream()
+                .map(entry -> new HourlyAccessStats(entry.getKey(), entry.getValue()))
+                .collect(Collectors.toList());
     }
 
     private String generateRandomString(int length) {

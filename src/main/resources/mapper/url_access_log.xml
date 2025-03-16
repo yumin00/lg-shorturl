@@ -6,4 +6,18 @@
             INSERT INTO url_access_log (url_mapping_id, accessed_at)
         VALUES (#{urlMappingId}, #{accessedAt})
     </insert>
+
+    <select id="findAccessLogsByUrlMappingIdAndTimeRange" resultType="com.laundrygo.shorturl.domain.UrlAccessLog">
+        SELECT
+        id,
+        url_mapping_id as urlMappingId,
+        accessed_at as accessedAt
+        FROM
+        url_access_log
+        WHERE
+        url_mapping_id = #{urlMappingId}
+        AND accessed_at BETWEEN #{startTime} AND #{endTime}
+        ORDER BY
+        accessed_at asc
+    </select>
 </mapper>

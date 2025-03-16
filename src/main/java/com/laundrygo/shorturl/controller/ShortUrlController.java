@@ -1,7 +1,10 @@
 package com.laundrygo.shorturl.controller;
 
+import com.laundrygo.shorturl.domain.UrlStats;
 import com.laundrygo.shorturl.dto.request.ShortenUrlRequest;
+import com.laundrygo.shorturl.dto.response.HourlyAccessStatsDto;
 import com.laundrygo.shorturl.dto.response.ShortenUrlResponse;
+import com.laundrygo.shorturl.dto.response.UrlStatsResponse;
 import com.laundrygo.shorturl.error.CommonErrorCode;
 import com.laundrygo.shorturl.error.RestApiException;
 import com.laundrygo.shorturl.error.ShortUrlErrorCode;
@@ -13,6 +16,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
@@ -46,5 +51,26 @@ public class ShortUrlController {
         return ResponseEntity.status(HttpStatus.MOVED_PERMANENTLY)
                 .headers(headers)
                 .build();
+    }
+
+    @GetMapping("/{shortUrl}/access-stats")
+    public ResponseEntity<UrlStatsResponse> getShortUrlAccessStats(@PathVariable String shortUrl) {
+        UrlStats urlStats = shortUrlService.getShortUrlAccessStats(shortUrl);
+        if (urlStats == null) {
+            throw new RestApiException(ShortUrlErrorCode.SHORT_URL_NOT_FOUND);
+        }
+
+        List<HourlyAccessStatsDto> hourlyAccessStatsDto = urlStats.getHourlyStats().stream()
+                .map(stat -> new HourlyAccessStatsDto(
+                        stat.getDateTime(),
+                        stat.getAccessCount()))
+                .collect(Collectors.toList());
+
+        UrlStatsResponse response = UrlStatsResponse.builder()
+                .originalUrl(urlStats.getOriginalUrl())
+                .hourlyStats(hourlyAccessStatsDto)
+                .build();
+
+        return ResponseEntity.ok(response);
     }
 }
