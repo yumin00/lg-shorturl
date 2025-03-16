@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.laundrygo.shorturl.repository.UrlMappingRepository">
+    <insert id="save" parameterType="com.laundrygo.shorturl.domain.UrlMapping"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO url_mapping (original_url, short_url)
+        VALUES (#{originalUrl}, #{shortUrl})
+    </insert>
+
+    <select id="findByOriginalUrl" resultType="com.laundrygo.shorturl.domain.UrlMapping">
+        SELECT id, original_url as originalUrl, short_url as shortUrl,
+               created_at as createdAt
+        FROM url_mapping
+        WHERE original_url = #{originalUrl}
+    </select>
+
+    <select id="existsByShortUrl" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM url_mapping
+        WHERE short_url = #{shortUrl}
+    </select>
+</mapper>
