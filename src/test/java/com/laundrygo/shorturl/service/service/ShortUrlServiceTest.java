@@ -2,6 +2,7 @@ package com.laundrygo.shorturl.service.service;
 
 import com.laundrygo.shorturl.domain.UrlAccessLog;
 import com.laundrygo.shorturl.domain.UrlMapping;
+import com.laundrygo.shorturl.domain.UrlStats;
 import com.laundrygo.shorturl.repository.UrlAccessLogRepository;
 import com.laundrygo.shorturl.repository.UrlMappingRepository;
 import com.laundrygo.shorturl.service.ShortUrlService;
@@ -11,6 +12,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -101,4 +107,35 @@ class ShortUrlServiceTest {
         verify(urlAccessLogRepository, never()).save(any());
     }
 
+
+    @Test
+    @DisplayName("단축 URL 통계 조회 테스트")
+    void getShortUrlAccessStatsTest() {
+        // given
+        UrlMapping urlMapping = UrlMapping.builder()
+                .id(1L)
+                .originalUrl(ORIGINAL_URL)
+                .shortUrl(SHORT_URL)
+                .build();
+
+        LocalDateTime now = LocalDateTime.now();
+        List<UrlAccessLog> accessLogs = new ArrayList<>();
+        accessLogs.add(UrlAccessLog.builder().urlMappingId(1L).accessedAt(now).build());
+        accessLogs.add(UrlAccessLog.builder().urlMappingId(1L).accessedAt(now.minusMinutes(30)).build());
+
+        when(urlMappingRepository.findByShortUrl(SHORT_URL)).thenReturn(urlMapping);
+        when(urlAccessLogRepository.findAccessLogsByUrlMappingIdAndTimeRange(
+                eq(1L), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(accessLogs);
+
+        // when
+        UrlStats stats = shortUrlService.getShortUrlAccessStats(SHORT_URL);
+
+        // then
+        assertNotNull(stats);
+        assertEquals(ORIGINAL_URL, stats.getOriginalUrl());
+        assertNotNull(stats.getHourlyStats());
+
+        // 시간별 통계는 24시간을 모두 포함해야 함
+        assertEquals(24, stats.getHourlyStats().size());
+    }
 }

@@ -2,6 +2,8 @@ package com.laundrygo.shorturl.service.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.laundrygo.shorturl.controller.ShortUrlController;
+import com.laundrygo.shorturl.domain.HourlyAccessStats;
+import com.laundrygo.shorturl.domain.UrlStats;
 import com.laundrygo.shorturl.dto.request.ShortenUrlRequest;
 import com.laundrygo.shorturl.service.ShortUrlService;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,6 +14,10 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -91,4 +97,38 @@ class ShortUrlControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @Test
+    @DisplayName("단축 URL 통계 조회 테스트")
+    void getShortUrlAccessStatsTest() throws Exception {
+        // given
+        LocalDateTime now = LocalDateTime.now();
+        List<HourlyAccessStats> hourlyStats = Arrays.asList(
+                new HourlyAccessStats(now.minusHours(1), 10L),
+                new HourlyAccessStats(now, 5L)
+        );
+
+        UrlStats urlStats = UrlStats.builder()
+                .originalUrl(ORIGINAL_URL)
+                .hourlyStats(hourlyStats)
+                .build();
+
+        when(shortUrlService.getShortUrlAccessStats(SHORT_URL)).thenReturn(urlStats);
+
+        // when, then
+        mockMvc.perform(get("/short-urls/{shortUrl}/access-stats", SHORT_URL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.originalUrl").value(ORIGINAL_URL))
+                .andExpect(jsonPath("$.hourlyStats.length()").value(2));
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 단축 URL 통계 조회 테스트")
+    void getShortUrlAccessStatsNotFoundTest() throws Exception {
+        // given
+        when(shortUrlService.getShortUrlAccessStats(anyString())).thenReturn(null);
+
+        // when, then
+        mockMvc.perform(get("/short-urls/{shortUrl}/access-stats", "notExist"))
+                .andExpect(status().isNotFound());
+    }
 }
